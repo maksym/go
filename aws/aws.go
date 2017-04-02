@@ -2,23 +2,11 @@ package main
 
 import "os"
 import "fmt"
+import "time"
 import "github.com/hpcloud/tail"
 import "github.com/aws/aws-sdk-go/aws"
 import "github.com/aws/aws-sdk-go/aws/session"
 import "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-
-func awsSequenceToken(group string, stream string) string {
-params := &cloudwatchlogs.DescribeLogStreamsInput{
-  LogGroupName: aws.String(group),
-  LogStreamNamePrefix: aws.String(stream),}
-  resp, err := svc.DescribeLogStreams(params)
-  if err != nil {
-    fmt.Println(err.Error())
-    return ""
-  }
-  fmt.Println(resp)
-  return ""
-}
 
 func main() {
   tailfile := os.Args[1]
@@ -28,8 +16,14 @@ func main() {
   fmt.Println(stream)
   sess := session.Must(session.NewSession())
   svc := cloudwatchlogs.New(sess)
-
-  awsSequenceToken()
+  describeParams := &cloudwatchlogs.DescribeLogStreamsInput{LogGroupName: aws.String(group), LogStreamNamePrefix: aws.String(stream)}
+  describeResp, describeErr := svc.DescribeLogStreams(describeParams)
+  if describeErr != nil {
+    fmt.Println(describeErr.Error())
+  }
+  fmt.Println("DescribeLogStreams: ", describeResp)
+  sequenceToken := describeResp.LogStreams[0].UploadSequenceToken
+  fmt.Println("sequenceToken: ", sequenceToken)
 
   t, err := tail.TailFile(tailfile, tail.Config{Follow: true})
   if err != nil {
@@ -38,14 +32,17 @@ func main() {
   }
   for line := range t.Lines {
     fmt.Println(line.Text)
+    putParams := &cloudwatchlogs.PutLogEventsInput{
+      LogEvents: []*cloudwatchlogs.InputLogEvent{{Message: aws.String(line.Text), Timestamp: aws.Int64(aws.TimeUnixMilli(time.Now()))}},
+      LogGroupName: aws.String(group),
+      LogStreamName: aws.String(stream),
+      SequenceToken: sequenceToken}
+    putResp, putErr := svc.PutLogEvents(putParams)
+    if err != nil {
+      fmt.Errorf("Error: %s", putErr)
+      return
+    }
+    fmt.Println("PutLogEvents: ", putResp)
+    sequenceToken = putResp.NextSequenceToken
   }
 }
-
-//params := &cloudwatchlogs.PutLogEventsInput{
-//  LogEvents: []*cloudwatchlogs.InputLogEvent{{
-//    Message: aws.String("EventMessage"),
-//    Timestamp: aws.Int64(1),},},
-//  LogGroupName: aws.String(group),
-//  LogStreamName: aws.String(stream),
-//  SequenceToken: aws.String("SequenceToken"),}
-// resp, err := svc.PutLogEvents(params)
