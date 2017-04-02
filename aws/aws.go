@@ -1,10 +1,12 @@
 package main
 
+import "os"
 import "fmt"
 import "github.com/hpcloud/tail"
 
 func main() {
-  t, err := tail.TailFile("/aws/tailfile", tail.Config{Follow: true})
+  tailfile := os.Args[1]
+  t, err := tail.TailFile(tailfile, tail.Config{Follow: true})
   for line := range t.Lines {
     fmt.Println("line: ")
     fmt.Println(line.Text)

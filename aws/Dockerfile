@@ -3,5 +3,5 @@ ADD aws.go /aws/aws.go
 WORKDIR /aws
 RUN go get github.com/hpcloud/tail
 RUN go build
-VOLUME /aws/tailfile
-ENTRYPOINT ["./aws"]
+VOLUME /aws/tail
+ENTRYPOINT ["./aws", "/aws/tail"]
