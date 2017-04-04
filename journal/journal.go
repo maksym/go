@@ -44,7 +44,7 @@ func main() {
 		// jsonDataBytes, err = json.MarshalIndent(record, "", "  ")
 		jsonDataBytes, err = json.Marshal(record)
 		jsonData := string(jsonDataBytes)
-		append := fmt.Sprintf("Timestamp: %s Message: %s", int64(record.TimeUsec), jsonData)
+		append := fmt.Sprintf("%v %s", int64(record.TimeUsec), jsonData)
 		fmt.Println(append)
 		f.WriteString(append)
 	}
@@ -191,6 +191,9 @@ func UnmarshalRecord(journal *sdjournal.Journal, to *Record) error {
 		// FIXME: Should use the realtime from the log record,
 		// but for some reason journal.GetRealtimeUsec always fails.
 		to.TimeUsec = time.Now().Unix() * 1000
+		//var timeusec uint64
+		//timeusec, err = journal.GetRealtimeUsec()
+		//to.TimeUsec = int64(timeusec)
 
 	}
 	return err
