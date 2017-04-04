@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/coreos/go-systemd/sdjournal"
 	"os"
@@ -18,10 +19,11 @@ func main() {
 	fmt.Println(tailFile)
 	var err error
 	var journal *sdjournal.Journal
+	f, err := os.OpenFile(tailFile, os.O_RDWR|os.O_APPEND, 0666)
 	if journalDir == "" {
 		journal, err = sdjournal.NewJournal()
 	} else {
-		fmt.Printf("using journal dir: %s", journalDir)
+		fmt.Printf("using journal dir: %s\n", journalDir)
 		journal, err = sdjournal.NewJournalFromDir(journalDir)
 	}
 	if err != nil {
@@ -38,8 +40,15 @@ func main() {
 	records := make(chan Record)
 	go ReadRecords(journal, records)
 	for record := range records {
-		fmt.Println(record)
+		var jsonDataBytes []byte
+		// jsonDataBytes, err = json.MarshalIndent(record, "", "  ")
+		jsonDataBytes, err = json.Marshal(record)
+		jsonData := string(jsonDataBytes)
+		append := fmt.Sprintf("Timestamp: %s Message: %s", int64(record.TimeUsec), jsonData)
+		fmt.Println(append)
+		f.WriteString(append)
 	}
+	f.Close()
 }
 
 func ReadRecords(journal *sdjournal.Journal, c chan<- Record) {
@@ -72,7 +81,7 @@ func ReadRecords(journal *sdjournal.Journal, c chan<- Record) {
 
 		}
 
-		//		record.InstanceId
+		record.InstanceId = "local"
 		c <- *record
 
 		for {
