@@ -15,15 +15,15 @@ import (
 func main() {
 	journalDir := os.Args[1]
 	tailFile := os.Args[2]
-	fmt.Println(journalDir)
-	fmt.Println(tailFile)
+	//fmt.Println(journalDir)
+	//fmt.Println(tailFile)
 	var err error
 	var journal *sdjournal.Journal
 	f, err := os.OpenFile(tailFile, os.O_RDWR|os.O_APPEND, 0666)
 	if journalDir == "" {
 		journal, err = sdjournal.NewJournal()
 	} else {
-		fmt.Printf("using journal dir: %s\n", journalDir)
+		//fmt.Printf("using journal dir: %s\n", journalDir)
 		journal, err = sdjournal.NewJournalFromDir(journalDir)
 	}
 	if err != nil {
@@ -41,11 +41,10 @@ func main() {
 	go ReadRecords(journal, records)
 	for record := range records {
 		var jsonDataBytes []byte
-		// jsonDataBytes, err = json.MarshalIndent(record, "", "  ")
 		jsonDataBytes, err = json.Marshal(record)
 		jsonData := string(jsonDataBytes)
-		append := fmt.Sprintf("%v %s", int64(record.TimeUsec), jsonData)
-		fmt.Println(append)
+		append := fmt.Sprintf("%s\n", jsonData)
+		fmt.Printf("%s", append)
 		f.WriteString(append)
 	}
 	f.Close()
@@ -145,7 +144,7 @@ var PriorityJSON = map[Priority][]byte{
 
 type Record struct {
 	InstanceId     string       `json:"instanceId,omitempty"`
-	TimeUsec       int64        `json:"-"`
+	TimeUsec       int64        `json:"timestamp"`
 	PID            int          `json:"pid" journald:"_PID"`
 	UID            int          `json:"uid" journald:"_UID"`
 	GID            int          `json:"gid" journald:"_GID"`
@@ -190,12 +189,13 @@ func UnmarshalRecord(journal *sdjournal.Journal, to *Record) error {
 	if err == nil {
 		// FIXME: Should use the realtime from the log record,
 		// but for some reason journal.GetRealtimeUsec always fails.
-		to.TimeUsec = time.Now().Unix() * 1000
+		//to.TimeUsec = time.Now().Unix() * 1000
 		//var timeusec uint64
 		//timeusec, err = journal.GetRealtimeUsec()
 		//to.TimeUsec = int64(timeusec)
 
 	}
+	to.TimeUsec = time.Now().Unix() * 1000
 	return err
 
 }

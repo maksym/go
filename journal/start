@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./journal /journal/log /journal/tail
